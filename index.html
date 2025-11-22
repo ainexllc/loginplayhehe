@@ -1794,7 +1794,7 @@
 
 
 
-            if (inputVector.length() > 0.1) { // Deadzone for tiny movements
+            if (inputVector.length() >= 0.01) { // Deadzone for tiny movements
 
                 inputVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraAngle);
 
