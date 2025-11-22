@@ -1748,7 +1748,7 @@
 
 
 
-        function updatePlayer() {
+        function updatePlayer(delta) {
 
             if (!player) return;
 
@@ -1800,9 +1800,9 @@
 
 
 
-                // Scale speed by input magnitude (allows slow walking with analog stick)
+                // Scale speed by input magnitude and delta time for frame-rate independence
 
-                player.position.addScaledVector(inputVector, CONFIG.playerSpeed);
+                player.position.addScaledVector(inputVector, CONFIG.playerSpeed * delta * 60);
 
 
 
@@ -1862,13 +1862,13 @@
 
 
 
-        function updateCamera() {
+        function updateCamera(delta) {
 
             if (!player) return;
 
-            // Apply camera rotation from virtual control
+            // Apply camera rotation from virtual control (frame-rate independent)
 
-            cameraAngle += cameraRotationSpeed * 0.028;
+            cameraAngle += cameraRotationSpeed * delta * 60 * 0.028;
 
             const dist = CONFIG.cameraDistance;
 
@@ -2025,14 +2025,15 @@
             requestAnimationFrame(animate);
 
             const time = clock.getElapsedTime();
+            const delta = clock.getDelta();
 
             if (grassMat) grassMat.uniforms.time.value = time;
 
 
 
-            updatePlayer();
+            updatePlayer(delta);
 
-            updateCamera();
+            updateCamera(delta);
 
             updateTreats();
 
