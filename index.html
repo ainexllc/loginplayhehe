@@ -414,7 +414,7 @@
 
             treatCount: 40,
 
-            playerSpeed: 0.4,
+            playerSpeed: 0.5,
 
             cameraDistance: 18,
 
@@ -614,7 +614,7 @@
 
                     const delta = e.clientX - previousMouseX;
 
-                    cameraAngle -= delta * 0.005;
+                    cameraAngle -= delta * 0.007;
 
                     previousMouseX = e.clientX;
 
@@ -650,7 +650,7 @@
 
                     const delta = e.touches[0].clientX - previousMouseX;
 
-                    cameraAngle -= delta * 0.01;
+                    cameraAngle -= delta * 0.014;
 
                     previousMouseX = e.touches[0].clientX;
 
@@ -1868,7 +1868,7 @@
 
             // Apply camera rotation from virtual control
 
-            cameraAngle += cameraRotationSpeed * 0.02;
+            cameraAngle += cameraRotationSpeed * 0.028;
 
             const dist = CONFIG.cameraDistance;
 
