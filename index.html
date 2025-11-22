@@ -1043,7 +1043,7 @@
             }
         }
 
-        function updatePlayer() {
+        function updatePlayer(dt) {
             processInputs(); // Mix keyboard and joystick
 
             if (!player) return;
@@ -1056,13 +1056,17 @@
             if (inputVector.length() > 0.1) { // Deadzone
                 inputVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraAngle);
 
-                player.position.addScaledVector(inputVector, CONFIG.playerSpeed);
+                // Normalize to 60fps baseline
+                const speedFactor = dt * 60;
+                player.position.addScaledVector(inputVector, CONFIG.playerSpeed * speedFactor);
 
                 const targetRotation = Math.atan2(inputVector.x, inputVector.z);
                 let rotDiff = targetRotation - player.rotation.y;
                 while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
                 while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
-                player.rotation.y += rotDiff * 0.15;
+                
+                // Smooth rotation (approx 0.15 at 60fps)
+                player.rotation.y += rotDiff * Math.min(1, 10 * dt);
 
                 const time = Date.now() * 0.01;
                 player.children.forEach(child => {
@@ -1086,12 +1090,14 @@
             player.position.z = Math.max(-limit, Math.min(limit, player.position.z));
         }
 
-        function updateCamera() {
+        function updateCamera(dt) {
             if (!player) return;
+
+            const speedFactor = dt * 60;
 
             // Check for right joystick input
             if (Math.abs(inputState.look.x) > 0.1) {
-                cameraAngle -= inputState.look.x * CONFIG.camRotationSpeed;
+                cameraAngle -= inputState.look.x * CONFIG.camRotationSpeed * speedFactor;
             }
 
             const dist = CONFIG.cameraDistance;
@@ -1099,17 +1105,20 @@
             const offsetX = Math.sin(cameraAngle) * dist;
             const offsetZ = Math.cos(cameraAngle) * dist;
             const targetPos = new THREE.Vector3(player.position.x + offsetX, player.position.y + height, player.position.z + offsetZ);
-            camera.position.lerp(targetPos, 0.1);
+            
+            // Lerp speed correction
+            camera.position.lerp(targetPos, Math.min(1, 6.0 * dt));
             camera.lookAt(player.position);
         }
 
-        function updateTreats() {
+        function updateTreats(dt) {
             const time = Date.now() * 0.002;
+            const speedFactor = dt * 60;
             const playerBox = new THREE.Box3().setFromObject(player);
             for (let i = treats.length - 1; i >= 0; i--) {
                 const t = treats[i];
-                t.mesh.rotation.y += t.rotationSpeed;
-                if (t.points === 10) t.mesh.rotation.x += t.rotationSpeed * 0.5;
+                t.mesh.rotation.y += t.rotationSpeed * speedFactor;
+                if (t.points === 10) t.mesh.rotation.x += t.rotationSpeed * 0.5 * speedFactor;
                 else t.mesh.rotation.z = Math.sin(time * 2) * 0.1;
                 t.mesh.position.y = t.baseY + Math.sin(time + t.floatOffset) * 0.3;
 
@@ -1139,14 +1148,18 @@
             }
         }
 
-        function updateParticles() {
+        function updateParticles(dt) {
+            const speedFactor = dt * 60;
             for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i];
-                p.life -= 0.02;
-                p.mesh.position.add(p.vel);
-                p.vel.y -= 0.02;
-                p.mesh.rotation.x += 0.1;
-                p.mesh.rotation.y += 0.1;
+                p.life -= 0.02 * speedFactor;
+                
+                // Scale velocity application
+                p.mesh.position.add(p.vel.clone().multiplyScalar(speedFactor));
+                p.vel.y -= 0.02 * speedFactor;
+                
+                p.mesh.rotation.x += 0.1 * speedFactor;
+                p.mesh.rotation.y += 0.1 * speedFactor;
                 p.mesh.scale.setScalar(p.life);
                 if (p.life <= 0) {
                     scene.remove(p.mesh);
@@ -1175,13 +1188,14 @@
 
         function animate() {
             requestAnimationFrame(animate);
+            const delta = clock.getDelta();
             const time = clock.getElapsedTime();
             if (grassMat) grassMat.uniforms.time.value = time;
 
-            updatePlayer();
-            updateCamera();
-            updateTreats();
-            updateParticles();
+            updatePlayer(delta);
+            updateCamera(delta);
+            updateTreats(delta);
+            updateParticles(delta);
             checkRoundWin();
 
             renderer.render(scene, camera);
