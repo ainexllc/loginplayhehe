@@ -330,15 +330,30 @@
             ctx: null,
             musicEnabled: true,
             sfxEnabled: true,
-            isPlayingMusic: false,
             nextNoteTime: 0,
             noteIndex: 0,
+            
+            // Scale frequencies
+            SCALE: {
+                C3: 130.81, D3: 146.83, E3: 164.81, F3: 174.61, G3: 196.00, A3: 220.00, B3: 246.94,
+                C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.00, A4: 440.00, B4: 493.88,
+                C5: 523.25, D5: 587.33, E5: 659.25
+            },
+
+            // "Walking the Dog" Melody - arrays of { note, len (relative duration) }
             melody: [
-                // Simple cheerful looping melody (Frequency, Duration)
-                { f: 261.63, d: 0.2 }, { f: 329.63, d: 0.2 }, { f: 392.00, d: 0.2 }, { f: 523.25, d: 0.4 }, // C E G C
-                { f: 392.00, d: 0.2 }, { f: 329.63, d: 0.2 }, // G E
-                { f: 293.66, d: 0.2 }, { f: 349.23, d: 0.2 }, { f: 440.00, d: 0.2 }, { f: 587.33, d: 0.4 }, // D F A D
-                { f: 440.00, d: 0.2 }, { f: 349.23, d: 0.2 }  // A F
+                // Phrase 1
+                {n:'C4',l:2}, {n:'E4',l:2}, {n:'G4',l:2}, {n:'A4',l:1}, {n:'G4',l:1}, 
+                {n:'E4',l:2}, {n:'C4',l:2}, {n:'D4',l:4},
+                // Phrase 2
+                {n:'C4',l:2}, {n:'E4',l:2}, {n:'G4',l:2}, {n:'C5',l:2}, 
+                {n:'B4',l:2}, {n:'G4',l:2}, {n:'A4',l:4},
+                // Phrase 3 (Variation)
+                {n:'F4',l:2}, {n:'A4',l:2}, {n:'C5',l:2}, {n:'A4',l:2},
+                {n:'G4',l:2}, {n:'E4',l:2}, {n:'C4',l:4},
+                // Phrase 4 (Turnaround)
+                {n:'D4',l:2}, {n:'F4',l:2}, {n:'A4',l:2}, {n:'B4',l:2},
+                {n:'C5',l:4}, {n:'C4',l:4} // End on root
             ],
 
             init: function() {
@@ -355,16 +370,21 @@
             toggleMusic: function(enabled) {
                 this.musicEnabled = enabled;
                 if(enabled) {
-                    this.init(); // Ensure context is running
+                    if(this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+                    else this.init();
+                    
+                    // Reset timing to avoid catch-up
+                    this.nextNoteTime = this.ctx.currentTime + 0.1;
                     this.scheduleMusic();
                 }
             },
 
             toggleSFX: function(enabled) {
                 this.sfxEnabled = enabled;
-                if(enabled) this.init();
+                if(enabled && (!this.ctx || this.ctx.state === 'suspended')) this.init();
             },
 
+            // Sound Effects
             playTone: function(freq, type, duration, vol = 0.1, slideTo = null) {
                 if (!this.ctx) return;
                 const osc = this.ctx.createOscillator();
@@ -388,24 +408,25 @@
             playCollect: function(isBig) {
                 if (!this.sfxEnabled) return;
                 this.init();
-                // "Coin" sound: fast high sine wave slide
                 if (isBig) {
-                    // Lower pitched "heavy" sound for steak
-                    this.playTone(300, 'square', 0.2, 0.1, 600);
+                    // "Chomp" sound - Sawtooth drop
+                    this.playTone(150, 'sawtooth', 0.15, 0.1, 50);
+                    setTimeout(() => this.playTone(120, 'sawtooth', 0.15, 0.1, 40), 100);
                 } else {
-                    // High pitched "ding" for bone
-                    this.playTone(600, 'sine', 0.1, 0.1, 1200);
+                    // Happy "Pop" - High sine
+                    this.playTone(800, 'sine', 0.1, 0.1, 1200);
                 }
             },
 
             playWin: function() {
                 if (!this.sfxEnabled) return;
                 this.init();
-                // Fanfare: Major triad
+                // Victory Fanfare Arpeggio
                 const now = this.ctx.currentTime;
-                this.playToneScheduled(523.25, 'triangle', 0.1, now);
-                this.playToneScheduled(659.25, 'triangle', 0.1, now + 0.1);
-                this.playToneScheduled(783.99, 'triangle', 0.4, now + 0.2);
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                    this.playToneScheduled(freq, 'square', 0.15, now + i * 0.08);
+                });
+                this.playToneScheduled(523.25, 'square', 0.4, now + 0.32); // Final chord root
             },
 
             playToneScheduled: function(freq, type, duration, time) {
@@ -421,39 +442,60 @@
                 osc.stop(time + duration);
             },
 
+            // Music Engine
             scheduleMusic: function() {
                 if (!this.musicEnabled || !this.ctx) return;
 
-                // Simple scheduler lookahead
-                while (this.nextNoteTime < this.ctx.currentTime + 0.1) {
-                    this.playNextMusicNote();
+                const lookahead = 0.1; 
+                const tempo = 0.15; // Speed of a "unit" (approx 16th note)
+
+                while (this.nextNoteTime < this.ctx.currentTime + lookahead) {
+                    this.playNextMusicNote(tempo);
                 }
                 requestAnimationFrame(() => this.scheduleMusic());
             },
 
-            playNextMusicNote: function() {
-                // Initial start time
+            playNextMusicNote: function(unitTime) {
                 if (this.nextNoteTime === 0) this.nextNoteTime = this.ctx.currentTime + 0.1;
 
-                const note = this.melody[this.noteIndex];
+                const noteData = this.melody[this.noteIndex];
+                const freq = this.SCALE[noteData.n] || 0;
+                const duration = noteData.l * unitTime;
 
-                const osc = this.ctx.createOscillator();
-                const gain = this.ctx.createGain();
+                if (freq > 0) {
+                    // Melody Voice (Triangle for flute-ish sound)
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle'; 
+                    osc.frequency.setValueAtTime(freq, this.nextNoteTime);
+                    
+                    // Envelope: soft attack, sustain, release
+                    gain.gain.setValueAtTime(0.0, this.nextNoteTime);
+                    gain.gain.linearRampToValueAtTime(0.08, this.nextNoteTime + 0.05);
+                    gain.gain.linearRampToValueAtTime(0.06, this.nextNoteTime + duration * 0.8);
+                    gain.gain.linearRampToValueAtTime(0, this.nextNoteTime + duration);
 
-                osc.type = 'sine'; // Softer sound for background
-                osc.frequency.setValueAtTime(note.f, this.nextNoteTime);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.nextNoteTime);
+                    osc.stop(this.nextNoteTime + duration);
 
-                // Very quiet volume for background music
-                gain.gain.setValueAtTime(0.03, this.nextNoteTime);
-                gain.gain.linearRampToValueAtTime(0, this.nextNoteTime + note.d * 0.9);
+                    // Bass Voice (Sine for warmth, 2 octaves down)
+                    const bassOsc = this.ctx.createOscillator();
+                    const bassGain = this.ctx.createGain();
+                    bassOsc.type = 'sine';
+                    bassOsc.frequency.setValueAtTime(freq / 4, this.nextNoteTime); 
+                    
+                    bassGain.gain.setValueAtTime(0.05, this.nextNoteTime);
+                    bassGain.gain.exponentialRampToValueAtTime(0.001, this.nextNoteTime + duration * 0.8);
+                    
+                    bassOsc.connect(bassGain);
+                    bassGain.connect(this.ctx.destination);
+                    bassOsc.start(this.nextNoteTime);
+                    bassOsc.stop(this.nextNoteTime + duration);
+                }
 
-                osc.connect(gain);
-                gain.connect(this.ctx.destination);
-
-                osc.start(this.nextNoteTime);
-                osc.stop(this.nextNoteTime + note.d);
-
-                this.nextNoteTime += note.d;
+                this.nextNoteTime += duration;
                 this.noteIndex = (this.noteIndex + 1) % this.melody.length;
             }
         };
