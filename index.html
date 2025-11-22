@@ -1,0 +1,2061 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Doggo Treat Chase 3D</title>
+
+    <style>
+
+        body {
+
+            margin: 0;
+
+            overflow: hidden;
+
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+            background-color: #87CEEB; /* Sky blue fallback */
+
+            user-select: none;
+
+            touch-action: none; /* Prevent browser scrolling/zooming */
+
+        }
+
+
+
+        #ui-container {
+
+            position: absolute;
+
+            top: 20px;
+
+            left: 20px;
+
+            display: flex;
+
+            flex-direction: column;
+
+            gap: 10px;
+
+            pointer-events: none;
+
+            z-index: 10;
+
+        }
+
+
+
+        .hud-box {
+
+            color: white;
+
+            background: rgba(0, 0, 0, 0.5);
+
+            padding: 10px 20px;
+
+            border-radius: 30px;
+
+            font-size: 20px;
+
+            font-weight: bold;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+            border: 2px solid rgba(255, 255, 255, 0.3);
+
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+
+            width: fit-content;
+
+        }
+
+
+
+        #score-icon { font-size: 24px; }
+
+
+
+        #center-message {
+
+            position: absolute;
+
+            top: 40%;
+
+            left: 50%;
+
+            transform: translate(-50%, -50%);
+
+            text-align: center;
+
+            color: white;
+
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+
+            pointer-events: none;
+
+            transition: opacity 0.5s;
+
+            opacity: 0;
+
+            z-index: 20;
+
+        }
+
+
+
+        #center-message h1 {
+
+            font-size: 60px;
+
+            margin: 0;
+
+            color: #FFD700;
+
+            -webkit-text-stroke: 2px #8B4513;
+
+        }
+
+
+
+        #center-message p {
+
+            font-size: 24px;
+
+            margin-top: 10px;
+
+            font-weight: bold;
+
+        }
+
+
+
+        #instructions {
+
+            position: absolute;
+
+            bottom: 20px;
+
+            width: 100%;
+
+            text-align: center;
+
+            color: white;
+
+            font-weight: bold;
+
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+
+            pointer-events: none;
+
+            font-size: 16px;
+
+            z-index: 10;
+
+        }
+
+
+
+        #loading {
+
+            position: absolute;
+
+            top: 50%;
+
+            left: 50%;
+
+            transform: translate(-50%, -50%);
+
+            color: white;
+
+            font-size: 24px;
+
+            font-weight: bold;
+
+            z-index: 30;
+
+        }
+
+
+
+        /* Virtual Joystick Styles */
+
+        #joystick-zone {
+
+            position: absolute;
+
+            bottom: 40px;
+
+            left: 40px;
+
+            width: 120px;
+
+            height: 120px;
+
+            background: rgba(255, 255, 255, 0.2);
+
+            border: 2px solid rgba(255, 255, 255, 0.4);
+
+            border-radius: 50%;
+
+            z-index: 50;
+
+            /* Only visible on touch devices usually, but we'll leave it for testing */
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            pointer-events: auto; /* Needs to receive touch */
+
+        }
+
+
+
+        #joystick-knob {
+
+            width: 50px;
+
+            height: 50px;
+
+            background: rgba(255, 255, 255, 0.8);
+
+            border-radius: 50%;
+
+            position: absolute;
+
+            transform: translate(0, 0);
+
+            pointer-events: none; /* Let clicks pass through to zone */
+
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+
+        }
+
+
+
+        /* Camera Rotation Control */
+
+        #camera-zone {
+
+            position: absolute;
+
+            bottom: 40px;
+
+            right: 40px;
+
+            width: 120px;
+
+            height: 120px;
+
+            background: rgba(255, 255, 255, 0.2);
+
+            border: 2px solid rgba(255, 255, 255, 0.4);
+
+            border-radius: 50%;
+
+            z-index: 50;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            pointer-events: auto;
+
+        }
+
+
+
+        #camera-knob {
+
+            width: 50px;
+
+            height: 50px;
+
+            background: rgba(255, 255, 255, 0.8);
+
+            border-radius: 50%;
+
+            position: absolute;
+
+            transform: translate(0, 0);
+
+            pointer-events: none;
+
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+
+        }
+
+
+
+        #camera-icon {
+
+            font-size: 20px;
+
+            color: rgba(0, 0, 0, 0.6);
+
+            pointer-events: none;
+
+        }
+
+
+
+    </style>
+
+</head>
+
+<body>
+
+
+
+    <!-- UI Elements -->
+
+    <div id="ui-container">
+
+        <div class="hud-box">
+
+            <span id="score-icon">🦴</span>
+
+            <span id="score">0</span>
+
+        </div>
+
+        <div class="hud-box">
+
+            <span>Round:</span>
+
+            <span id="round">1</span>
+
+        </div>
+
+    </div>
+
+
+
+    <div id="center-message">
+
+        <h1 id="msg-title">Round 1</h1>
+
+        <p id="msg-sub">Find the Dog House!</p>
+
+    </div>
+
+
+
+    <!-- Virtual Joystick for Mobile -->
+
+    <div id="joystick-zone">
+
+        <div id="joystick-knob"></div>
+
+    </div>
+
+
+
+    <!-- Camera Rotation Control for Mobile -->
+
+    <div id="camera-zone">
+
+        <span id="camera-icon">📷</span>
+
+        <div id="camera-knob"></div>
+
+    </div>
+
+
+
+    <div id="instructions">
+
+        WASD / Arrows to Move • Mouse Drag to Rotate Camera • Right Control for Camera Rotation • Find the Dog House to Advance!
+
+    </div>
+
+
+
+    <div id="loading">Loading Game...</div>
+
+
+
+    <!-- Three.js Library -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+
+
+    <script>
+
+        /**
+
+         * Game Configuration & State
+
+         */
+
+        const CONFIG = {
+
+            colorBg: 0x87CEEB,
+
+            colorGround: 0x7cfc00,
+
+            worldSize: 400,
+
+            treatCount: 40,
+
+            playerSpeed: 0.4,
+
+            cameraDistance: 18,
+
+            cameraHeight: 12
+
+        };
+
+
+
+        let scene, camera, renderer;
+
+        let player, playerVelocity;
+
+        let dogHouse;
+
+        let treats = [];
+
+        let particles = [];
+
+        let grassMat;
+
+        let score = 0;
+
+        let round = 1;
+
+        let isRoundTransitioning = false;
+
+
+
+        // Input State
+
+        const keys = {
+
+            w: false, a: false, s: false, d: false,
+
+            ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false
+
+        };
+
+
+
+        // Joystick State
+
+        let joystickActive = false;
+
+        let joystickVector = { x: 0, y: 0 }; // x: left/right, y: forward/back
+
+        const joystickZone = document.getElementById('joystick-zone');
+
+        const joystickKnob = document.getElementById('joystick-knob');
+
+        const joystickRadius = 35; // Max distance knob can move
+
+
+
+        // Camera Control State
+
+        let cameraControlActive = false;
+
+        let cameraRotationSpeed = 0; // -1 to 1, where -1 is left, 1 is right
+
+        const cameraZone = document.getElementById('camera-zone');
+
+        const cameraKnob = document.getElementById('camera-knob');
+
+        const cameraRadius = 35; // Max distance knob can move
+
+
+
+        // Camera State
+
+        let cameraAngle = 0;
+
+        let isDragging = false;
+
+        let previousMouseX = 0;
+
+
+
+        // Animation clock
+
+        const clock = new THREE.Clock();
+
+
+
+        /**
+
+         * Initialization
+
+         */
+
+        function init() {
+
+            // 1. Setup Scene
+
+            scene = new THREE.Scene();
+
+            scene.background = new THREE.Color(CONFIG.colorBg);
+
+            scene.fog = new THREE.Fog(CONFIG.colorBg, 40, 160);
+
+
+
+            // 2. Setup Camera
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+
+
+            // 3. Setup Renderer
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            renderer.shadowMap.enabled = true;
+
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+            document.body.appendChild(renderer.domElement);
+
+
+
+            // 4. Lighting
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+
+            scene.add(ambientLight);
+
+
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+
+            dirLight.position.set(50, 80, 30);
+
+            dirLight.castShadow = true;
+
+            dirLight.shadow.camera.left = -100;
+
+            dirLight.shadow.camera.right = 100;
+
+            dirLight.shadow.camera.top = 100;
+
+            dirLight.shadow.camera.bottom = -100;
+
+            dirLight.shadow.mapSize.width = 2048;
+
+            dirLight.shadow.mapSize.height = 2048;
+
+            scene.add(dirLight);
+
+
+
+            // 5. Create World Elements
+
+            createGround();
+
+            createTrees(80);
+
+            createPlayer();
+
+            createDogHouse();
+
+            spawnTreats();
+
+
+
+            // 6. Event Listeners
+
+            window.addEventListener('resize', onWindowResize, false);
+
+            document.addEventListener('keydown', (e) => handleKey(e, true));
+
+            document.addEventListener('keyup', (e) => handleKey(e, false));
+
+
+
+            // Mouse Camera Controls (Global)
+
+            document.addEventListener('mousedown', (e) => {
+
+                // Don't drag camera if clicking joystick or camera control
+
+                if(e.target.closest('#joystick-zone') || e.target.closest('#camera-zone')) return;
+
+                isDragging = true;
+
+                previousMouseX = e.clientX;
+
+            });
+
+            document.addEventListener('mouseup', () => isDragging = false);
+
+            document.addEventListener('mousemove', (e) => {
+
+                if (isDragging) {
+
+                    const delta = e.clientX - previousMouseX;
+
+                    cameraAngle -= delta * 0.005;
+
+                    previousMouseX = e.clientX;
+
+                }
+
+            });
+
+
+
+            // Touch Camera Controls (Global)
+
+            document.addEventListener('touchstart', (e) => {
+
+                // Ignore if touching joystick or camera control (handled separately)
+
+                if(e.target.closest('#joystick-zone') || e.target.closest('#camera-zone')) return;
+
+                isDragging = true;
+
+                previousMouseX = e.touches[0].clientX;
+
+            }, { passive: false });
+
+
+
+            document.addEventListener('touchend', () => isDragging = false);
+
+
+
+            document.addEventListener('touchmove', (e) => {
+
+                if (isDragging) {
+
+                    const delta = e.touches[0].clientX - previousMouseX;
+
+                    cameraAngle -= delta * 0.01;
+
+                    previousMouseX = e.touches[0].clientX;
+
+                }
+
+            }, { passive: false });
+
+
+
+            // Joystick Specific Listeners
+
+            setupJoystick();
+
+            setupCameraControl();
+
+
+
+            // Remove loading text
+
+            document.getElementById('loading').style.display = 'none';
+
+
+
+            // Start first round
+
+            startRound(1);
+
+
+
+            // Start Loop
+
+            animate();
+
+        }
+
+
+
+        function setupJoystick() {
+
+            // Helper to handle both mouse and touch for joystick
+
+            const startDrag = (clientX, clientY) => {
+
+                joystickActive = true;
+
+                updateJoystick(clientX, clientY);
+
+            };
+
+
+
+            const moveDrag = (clientX, clientY) => {
+
+                if (joystickActive) {
+
+                    updateJoystick(clientX, clientY);
+
+                }
+
+            };
+
+
+
+            const endDrag = () => {
+
+                joystickActive = false;
+
+                joystickVector = { x: 0, y: 0 };
+
+                joystickKnob.style.transform = `translate(0px, 0px)`;
+
+            };
+
+
+
+            // Touch events for Joystick
+
+            joystickZone.addEventListener('touchstart', (e) => {
+
+                e.preventDefault(); // Stop scroll/zoom
+
+                e.stopPropagation(); // Stop camera rotation
+
+                const touch = e.changedTouches[0];
+
+                startDrag(touch.clientX, touch.clientY);
+
+            }, { passive: false });
+
+
+
+            joystickZone.addEventListener('touchmove', (e) => {
+
+                e.preventDefault();
+
+                e.stopPropagation();
+
+                const touch = e.changedTouches[0];
+
+                moveDrag(touch.clientX, touch.clientY);
+
+            }, { passive: false });
+
+
+
+            joystickZone.addEventListener('touchend', (e) => {
+
+                e.preventDefault();
+
+                endDrag();
+
+            });
+
+
+
+            // Mouse events for Joystick (for testing on desktop)
+
+            joystickZone.addEventListener('mousedown', (e) => {
+
+                e.preventDefault();
+
+                e.stopPropagation();
+
+                startDrag(e.clientX, e.clientY);
+
+            });
+
+
+
+            // We attach mousemove/up to window so you can drag outside the box
+
+            window.addEventListener('mousemove', (e) => {
+
+                if(joystickActive) moveDrag(e.clientX, e.clientY);
+
+            });
+
+            window.addEventListener('mouseup', () => {
+
+                if(joystickActive) endDrag();
+
+            });
+
+        }
+
+
+
+        function setupCameraControl() {
+
+            // Helper to handle both mouse and touch for camera control
+
+            const startCameraDrag = (clientX, clientY) => {
+
+                cameraControlActive = true;
+
+                updateCameraControl(clientX, clientY);
+
+            };
+
+
+
+            const moveCameraDrag = (clientX, clientY) => {
+
+                if (cameraControlActive) {
+
+                    updateCameraControl(clientX, clientY);
+
+                }
+
+            };
+
+
+
+            const endCameraDrag = () => {
+
+                cameraControlActive = false;
+
+                cameraRotationSpeed = 0;
+
+                cameraKnob.style.transform = `translate(0px, 0px)`;
+
+            };
+
+
+
+            // Touch events for Camera Control
+
+            cameraZone.addEventListener('touchstart', (e) => {
+
+                e.preventDefault(); // Stop scroll/zoom
+
+                e.stopPropagation(); // Stop camera rotation
+
+                const touch = e.changedTouches[0];
+
+                startCameraDrag(touch.clientX, touch.clientY);
+
+            }, { passive: false });
+
+
+
+            cameraZone.addEventListener('touchmove', (e) => {
+
+                e.preventDefault();
+
+                e.stopPropagation();
+
+                const touch = e.changedTouches[0];
+
+                moveCameraDrag(touch.clientX, touch.clientY);
+
+            }, { passive: false });
+
+
+
+            cameraZone.addEventListener('touchend', (e) => {
+
+                e.preventDefault();
+
+                endCameraDrag();
+
+            });
+
+
+
+            // Mouse events for Camera Control (for testing on desktop)
+
+            cameraZone.addEventListener('mousedown', (e) => {
+
+                e.preventDefault();
+
+                e.stopPropagation();
+
+                startCameraDrag(e.clientX, e.clientY);
+
+            });
+
+
+
+            // We attach mousemove/up to window so you can drag outside the box
+
+            window.addEventListener('mousemove', (e) => {
+
+                if(cameraControlActive) moveCameraDrag(e.clientX, e.clientY);
+
+            });
+
+            window.addEventListener('mouseup', () => {
+
+                if(cameraControlActive) endCameraDrag();
+
+            });
+
+        }
+
+
+
+        function updateCameraControl(clientX, clientY) {
+
+            const rect = cameraZone.getBoundingClientRect();
+
+            const centerX = rect.left + rect.width / 2;
+
+            const centerY = rect.top + rect.height / 2;
+
+
+
+            let dx = clientX - centerX;
+
+            let dy = clientY - centerY;
+
+
+
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+
+
+            // Clamp knob to radius
+
+            if (distance > cameraRadius) {
+
+                const angle = Math.atan2(dy, dx);
+
+                dx = Math.cos(angle) * cameraRadius;
+
+                dy = Math.sin(angle) * cameraRadius;
+
+            }
+
+
+
+            // Visual Update
+
+            cameraKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+
+
+
+            // Logic Update (Normalized -1 to 1)
+
+            // Horizontal movement controls camera rotation speed
+
+            cameraRotationSpeed = dx / cameraRadius;
+
+        }
+
+
+
+        function updateJoystick(clientX, clientY) {
+
+            const rect = joystickZone.getBoundingClientRect();
+
+            const centerX = rect.left + rect.width / 2;
+
+            const centerY = rect.top + rect.height / 2;
+
+
+
+            let dx = clientX - centerX;
+
+            let dy = clientY - centerY;
+
+
+
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+
+
+            // Clamp knob to radius
+
+            if (distance > joystickRadius) {
+
+                const angle = Math.atan2(dy, dx);
+
+                dx = Math.cos(angle) * joystickRadius;
+
+                dy = Math.sin(angle) * joystickRadius;
+
+            }
+
+
+
+            // Visual Update
+
+            joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+
+
+
+            // Logic Update (Normalized -1 to 1)
+
+            // Inverted Y because screen Y goes down, but 3D world forward is negative Z usually
+
+            // Actually, we map screen Y directly. Up on screen (negative dy) should be Forward (-Z)
+
+            joystickVector.x = dx / joystickRadius;
+
+            joystickVector.y = dy / joystickRadius;
+
+        }
+
+
+
+        /**
+
+         * Game Mechanics
+
+         */
+
+        function startRound(newRoundNum) {
+
+            round = newRoundNum;
+
+            document.getElementById('round').innerText = round;
+
+            relocateDogHouse();
+
+            showMessage(`Round ${round}`, "Find the Dog House!");
+
+            isRoundTransitioning = false;
+
+        }
+
+
+
+        function relocateDogHouse() {
+
+            if (!dogHouse) return;
+
+            let validPosition = false;
+
+            let x, z;
+
+            const minDistance = 50;
+
+
+
+            while (!validPosition) {
+
+                x = (Math.random() - 0.5) * CONFIG.worldSize * 0.9;
+
+                z = (Math.random() - 0.5) * CONFIG.worldSize * 0.9;
+
+
+
+                const dist = Math.sqrt(Math.pow(x - player.position.x, 2) + Math.pow(z - player.position.z, 2));
+
+                if (dist > minDistance) {
+
+                    validPosition = true;
+
+                }
+
+            }
+
+            dogHouse.position.set(x, 0, z);
+
+            dogHouse.lookAt(0, 0, 0);
+
+            createParticles(new THREE.Vector3(x, 2, z), 0xFFFFFF, 20);
+
+        }
+
+
+
+        function checkRoundWin() {
+
+            if (isRoundTransitioning || !player || !dogHouse) return;
+
+            const dist = player.position.distanceTo(dogHouse.position);
+
+            if (dist < 8) completeRound();
+
+        }
+
+
+
+        function completeRound() {
+
+            isRoundTransitioning = true;
+
+            updateScore(100);
+
+            createParticles(dogHouse.position, 0xFFD700, 30);
+
+            showMessage("Round Complete!", "Bonus +100 pts");
+
+            setTimeout(() => {
+
+                startRound(round + 1);
+
+                if (treats.length < CONFIG.treatCount) spawnTreats();
+
+            }, 3000);
+
+        }
+
+
+
+        function showMessage(title, sub) {
+
+            const el = document.getElementById('center-message');
+
+            document.getElementById('msg-title').innerText = title;
+
+            document.getElementById('msg-sub').innerText = sub;
+
+            el.style.opacity = 1;
+
+            el.style.transform = "translate(-50%, -50%) scale(1.2)";
+
+            setTimeout(() => {
+
+                el.style.transform = "translate(-50%, -50%) scale(1)";
+
+            }, 200);
+
+            setTimeout(() => {
+
+                el.style.opacity = 0;
+
+            }, 2500);
+
+        }
+
+
+
+        /**
+
+         * Object Creation Helpers
+
+         */
+
+        function createGround() {
+
+            const geometry = new THREE.PlaneGeometry(CONFIG.worldSize, CONFIG.worldSize);
+
+            const material = new THREE.MeshStandardMaterial({ color: 0x3b5e2b, roughness: 0.9 });
+
+            const ground = new THREE.Mesh(geometry, material);
+
+            ground.rotation.x = -Math.PI / 2;
+
+            ground.receiveShadow = true;
+
+            ground.position.y = -0.1;
+
+            scene.add(ground);
+
+
+
+            const grassCount = 60000;
+
+            const grassGeo = new THREE.PlaneGeometry(0.1, 0.8, 1, 4);
+
+            grassGeo.translate(0, 0.4, 0);
+
+            const posAttribute = grassGeo.attributes.position;
+
+            for (let i = 0; i < posAttribute.count; i++) {
+
+                const y = posAttribute.getY(i);
+
+                const bend = (y / 0.8) * (y / 0.8) * 0.2;
+
+                posAttribute.setZ(i, posAttribute.getZ(i) - bend);
+
+            }
+
+            grassGeo.computeVertexNormals();
+
+
+
+            grassMat = new THREE.ShaderMaterial({
+
+                uniforms: {
+
+                    time: { value: 0 },
+
+                    colorBase: { value: new THREE.Color(0x4f8c2d) },
+
+                    colorTip: { value: new THREE.Color(0x7cfc00) }
+
+                },
+
+                vertexShader: `
+
+                    uniform float time;
+
+                    varying vec2 vUv;
+
+                    varying vec3 vColor;
+
+                    uniform vec3 colorBase;
+
+                    uniform vec3 colorTip;
+
+                    float random (vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123); }
+
+                    void main() {
+
+                        vUv = uv;
+
+                        float instanceRand = random(vec2(instanceMatrix[3][0], instanceMatrix[3][2]));
+
+                        vColor = mix(colorBase, colorTip, uv.y + instanceRand * 0.2);
+
+                        vec3 pos = position;
+
+                        float wave = sin(time * 2.0 + instanceMatrix[3][0] * 0.5) * 0.1;
+
+                        pos.x += wave * uv.y * uv.y;
+
+                        vec4 mvPosition = modelViewMatrix * instanceMatrix * vec4(pos, 1.0);
+
+                        gl_Position = projectionMatrix * mvPosition;
+
+                    }
+
+                `,
+
+                fragmentShader: `
+
+                    varying vec2 vUv;
+
+                    varying vec3 vColor;
+
+                    void main() { gl_FragColor = vec4(vColor, 1.0); }
+
+                `,
+
+                side: THREE.DoubleSide
+
+            });
+
+
+
+            const grassMesh = new THREE.InstancedMesh(grassGeo, grassMat, grassCount);
+
+            grassMesh.receiveShadow = true;
+
+            const dummy = new THREE.Object3D();
+
+            for (let i = 0; i < grassCount; i++) {
+
+                const x = (Math.random() - 0.5) * (CONFIG.worldSize - 10);
+
+                const z = (Math.random() - 0.5) * (CONFIG.worldSize - 10);
+
+                dummy.position.set(x, 0, z);
+
+                dummy.rotation.y = Math.random() * Math.PI * 2;
+
+                const s = 0.7 + Math.random() * 0.6;
+
+                dummy.scale.set(s, s * (0.8 + Math.random() * 0.4), s);
+
+                dummy.updateMatrix();
+
+                grassMesh.setMatrixAt(i, dummy.matrix);
+
+            }
+
+            grassMesh.instanceMatrix.needsUpdate = true;
+
+            scene.add(grassMesh);
+
+        }
+
+
+
+        function createPlayer() {
+
+            player = new THREE.Group();
+
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xD2691E });
+
+            const whiteMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
+
+            const blackMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+
+
+
+            const bodyGeo = new THREE.BoxGeometry(1.5, 1, 2);
+
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+
+            body.position.y = 1;
+
+            body.castShadow = true;
+
+            player.add(body);
+
+
+
+            const headGroup = new THREE.Group();
+
+            headGroup.position.set(0, 2, 1);
+
+            const craniumGeo = new THREE.BoxGeometry(1.3, 1.1, 1);
+
+            const cranium = new THREE.Mesh(craniumGeo, bodyMat);
+
+            cranium.castShadow = true;
+
+            headGroup.add(cranium);
+
+
+
+            const snoutGeo = new THREE.BoxGeometry(0.7, 0.5, 0.6);
+
+            const snout = new THREE.Mesh(snoutGeo, bodyMat);
+
+            snout.position.set(0, -0.2, 0.7);
+
+            snout.castShadow = true;
+
+            headGroup.add(snout);
+
+
+
+            const noseGeo = new THREE.BoxGeometry(0.3, 0.2, 0.2);
+
+            const nose = new THREE.Mesh(noseGeo, blackMat);
+
+            nose.position.set(0, 0, 1.0);
+
+            headGroup.add(nose);
+
+
+
+            const eyeGeo = new THREE.BoxGeometry(0.2, 0.2, 0.1);
+
+            const eyeL = new THREE.Mesh(eyeGeo, blackMat);
+
+            eyeL.position.set(0.35, 0.2, 0.55);
+
+            headGroup.add(eyeL);
+
+            const eyeR = new THREE.Mesh(eyeGeo, blackMat);
+
+            eyeR.position.set(-0.35, 0.2, 0.55);
+
+            headGroup.add(eyeR);
+
+
+
+            const earGeo = new THREE.BoxGeometry(0.3, 0.6, 0.3);
+
+            const earL = new THREE.Mesh(earGeo, blackMat);
+
+            earL.position.set(0.5, 0.5, -0.2);
+
+            earL.castShadow = true;
+
+            headGroup.add(earL);
+
+            const earR = new THREE.Mesh(earGeo, blackMat);
+
+            earR.position.set(-0.5, 0.5, -0.2);
+
+            earR.castShadow = true;
+
+            headGroup.add(earR);
+
+            player.add(headGroup);
+
+
+
+            const tailGeo = new THREE.BoxGeometry(0.3, 0.3, 0.8);
+
+            const tail = new THREE.Mesh(tailGeo, whiteMat);
+
+            tail.position.set(0, 1.5, -1.2);
+
+            tail.rotation.x = Math.PI / 4;
+
+            tail.name = "tail";
+
+            player.add(tail);
+
+
+
+            const legGeo = new THREE.BoxGeometry(0.4, 0.8, 0.4);
+
+            const positions = [[-0.5, 0.4, 0.7], [0.5, 0.4, 0.7], [-0.5, 0.4, -0.7], [0.5, 0.4, -0.7]];
+
+            positions.forEach((pos, index) => {
+
+                const leg = new THREE.Mesh(legGeo, whiteMat);
+
+                leg.position.set(...pos);
+
+                leg.castShadow = true;
+
+                leg.name = `leg${index}`;
+
+                player.add(leg);
+
+            });
+
+
+
+            player.position.y = 0;
+
+            scene.add(player);
+
+            playerVelocity = new THREE.Vector3();
+
+        }
+
+
+
+        function createTrees(count) {
+
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5C4033, flatShading: true });
+
+            const leafColors = [0x228B22, 0x006400, 0x32CD32];
+
+            const trunkGeo = new THREE.CylinderGeometry(0.4, 0.6, 1.5, 6);
+
+            const leafGeo = new THREE.DodecahedronGeometry(1.2);
+
+
+
+            for (let i = 0; i < count; i++) {
+
+                const tree = new THREE.Group();
+
+                const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+
+                trunk.position.y = 0.75;
+
+                trunk.castShadow = true;
+
+                trunk.receiveShadow = true;
+
+                tree.add(trunk);
+
+
+
+                const leavesGroup = new THREE.Group();
+
+                const topMat = new THREE.MeshStandardMaterial({ color: leafColors[0], flatShading: true });
+
+                const topPuff = new THREE.Mesh(leafGeo, topMat);
+
+                topPuff.position.y = 2.5;
+
+                topPuff.scale.set(1, 1.2, 1);
+
+                topPuff.castShadow = true;
+
+                leavesGroup.add(topPuff);
+
+
+
+                for(let j=0; j<4; j++) {
+
+                    const mat = new THREE.MeshStandardMaterial({
+
+                        color: leafColors[Math.floor(Math.random() * leafColors.length)],
+
+                        flatShading: true
+
+                    });
+
+                    const puff = new THREE.Mesh(leafGeo, mat);
+
+                    const angle = (j / 4) * Math.PI * 2;
+
+                    puff.position.set(Math.cos(angle) * 0.8, 1.8 + Math.random() * 0.5, Math.sin(angle) * 0.8);
+
+                    const s = 0.6 + Math.random() * 0.4;
+
+                    puff.scale.set(s, s, s);
+
+                    puff.castShadow = true;
+
+                    leavesGroup.add(puff);
+
+                }
+
+                tree.add(leavesGroup);
+
+                let x = (Math.random() - 0.5) * CONFIG.worldSize * 0.8;
+
+                let z = (Math.random() - 0.5) * CONFIG.worldSize * 0.8;
+
+                if (Math.abs(x) < 10 && Math.abs(z) < 10) x += 20;
+
+                tree.rotation.y = Math.random() * Math.PI * 2;
+
+                tree.scale.setScalar(1 + Math.random() * 0.5);
+
+                tree.position.set(x, 0, z);
+
+                scene.add(tree);
+
+            }
+
+        }
+
+
+
+        function createDogHouse() {
+
+            dogHouse = new THREE.Group();
+
+            const woodMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.9, flatShading: true });
+
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0xA52A2A, roughness: 0.6, flatShading: true });
+
+            const darkMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+
+            const trimMat = new THREE.MeshStandardMaterial({ color: 0xFFF8DC });
+
+
+
+            const platGeo = new THREE.BoxGeometry(9, 0.5, 10);
+
+            const plat = new THREE.Mesh(platGeo, woodMat);
+
+            plat.position.y = 0.25;
+
+            plat.castShadow = true;
+
+            plat.receiveShadow = true;
+
+            dogHouse.add(plat);
+
+
+
+            const wallGeo = new THREE.BoxGeometry(7, 5, 8);
+
+            const walls = new THREE.Mesh(wallGeo, woodMat);
+
+            walls.position.y = 2.75;
+
+            walls.castShadow = true;
+
+            walls.receiveShadow = true;
+
+            dogHouse.add(walls);
+
+
+
+            const roofPanelGeo = new THREE.BoxGeometry(6, 0.4, 9.5);
+
+            const roofL = new THREE.Mesh(roofPanelGeo, roofMat);
+
+            roofL.position.set(-2.4, 6.2, 0);
+
+            roofL.rotation.z = Math.PI / 5;
+
+            roofL.castShadow = true;
+
+            dogHouse.add(roofL);
+
+            const roofR = new THREE.Mesh(roofPanelGeo, roofMat);
+
+            roofR.position.set(2.4, 6.2, 0);
+
+            roofR.rotation.z = -Math.PI / 5;
+
+            roofR.castShadow = true;
+
+            dogHouse.add(roofR);
+
+
+
+            const doorGroup = new THREE.Group();
+
+            doorGroup.position.set(0, 2.25, 4.05);
+
+            const doorBoxGeo = new THREE.BoxGeometry(2.5, 3, 0.2);
+
+            const doorBox = new THREE.Mesh(doorBoxGeo, darkMat);
+
+            doorGroup.add(doorBox);
+
+            const doorArchGeo = new THREE.CylinderGeometry(1.25, 1.25, 0.2, 16);
+
+            const doorArch = new THREE.Mesh(doorArchGeo, darkMat);
+
+            doorArch.rotation.x = Math.PI / 2;
+
+            doorArch.position.y = 1.5;
+
+            doorGroup.add(doorArch);
+
+            dogHouse.add(doorGroup);
+
+
+
+            const plateGeo = new THREE.BoxGeometry(2, 0.6, 0.2);
+
+            const plate = new THREE.Mesh(plateGeo, trimMat);
+
+            plate.position.set(0, 4.8, 4.1);
+
+            dogHouse.add(plate);
+
+
+
+            dogHouse.position.set(0, -100, 0);
+
+            scene.add(dogHouse);
+
+        }
+
+
+
+        function spawnTreats() {
+
+            treats.forEach(t => scene.remove(t.mesh));
+
+            treats = [];
+
+
+
+            const boneMat = new THREE.MeshStandardMaterial({ color: 0xF5DEB3, roughness: 0.6, metalness: 0.1 });
+
+            const meatMat = new THREE.MeshStandardMaterial({ color: 0xA52A2A, roughness: 0.4, metalness: 0.1 });
+
+            const fatMat = new THREE.MeshStandardMaterial({ color: 0xFFEEEE });
+
+
+
+            const boneShaftGeo = new THREE.BoxGeometry(0.6, 0.25, 0.3);
+
+            const boneKnobGeo = new THREE.SphereGeometry(0.22, 8, 8);
+
+            const steakMainGeo = new THREE.BoxGeometry(0.5, 0.15, 0.6);
+
+            const steakFatGeo = new THREE.BoxGeometry(0.52, 0.16, 0.15);
+
+
+
+            for (let i = 0; i < CONFIG.treatCount; i++) {
+
+                const isSteak = Math.random() > 0.8;
+
+                const mesh = new THREE.Group();
+
+                let points = 0;
+
+
+
+                if (isSteak) {
+
+                    points = 50;
+
+                    const meat = new THREE.Mesh(steakMainGeo, meatMat);
+
+                    mesh.add(meat);
+
+                    const fat = new THREE.Mesh(steakFatGeo, fatMat);
+
+                    fat.position.z = 0.15;
+
+                    mesh.add(fat);
+
+                    mesh.scale.setScalar(1.8);
+
+                } else {
+
+                    points = 10;
+
+                    const shaft = new THREE.Mesh(boneShaftGeo, boneMat);
+
+                    mesh.add(shaft);
+
+                    const k1 = new THREE.Mesh(boneKnobGeo, boneMat); k1.position.set(0.3, 0, 0.15); mesh.add(k1);
+
+                    const k2 = new THREE.Mesh(boneKnobGeo, boneMat); k2.position.set(0.3, 0, -0.15); mesh.add(k2);
+
+                    const k3 = new THREE.Mesh(boneKnobGeo, boneMat); k3.position.set(-0.3, 0, 0.15); mesh.add(k3);
+
+                    const k4 = new THREE.Mesh(boneKnobGeo, boneMat); k4.position.set(-0.3, 0, -0.15); mesh.add(k4);
+
+                    mesh.scale.setScalar(1.5);
+
+                }
+
+
+
+                const x = (Math.random() - 0.5) * CONFIG.worldSize * 0.8;
+
+                const z = (Math.random() - 0.5) * CONFIG.worldSize * 0.8;
+
+                mesh.position.set(x, 1.5, z);
+
+                mesh.traverse((child) => { if (child.isMesh) child.castShadow = true; });
+
+
+
+                treats.push({
+
+                    mesh: mesh,
+
+                    points: points,
+
+                    baseY: 1.5,
+
+                    floatOffset: Math.random() * Math.PI * 2,
+
+                    rotationSpeed: isSteak ? 0.01 : ((Math.random() * 0.02) + 0.02)
+
+                });
+
+                scene.add(mesh);
+
+            }
+
+        }
+
+
+
+        /**
+
+         * Game Logic
+
+         */
+
+        function handleKey(e, pressed) {
+
+            if (keys.hasOwnProperty(e.key) || keys.hasOwnProperty(e.code)) {
+
+                keys[e.key] = pressed;
+
+                keys[e.code] = pressed;
+
+            }
+
+        }
+
+
+
+        function updatePlayer() {
+
+            if (!player) return;
+
+
+
+            // Mix Keyboard and Joystick input
+
+            let moveX = 0, moveZ = 0;
+
+
+
+            // Keyboard
+
+            if (keys.w || keys.ArrowUp) moveZ = -1;
+
+            if (keys.s || keys.ArrowDown) moveZ = 1;
+
+            if (keys.a || keys.ArrowLeft) moveX = -1;
+
+            if (keys.d || keys.ArrowRight) moveX = 1;
+
+
+
+            // Joystick (Add to keyboard input)
+
+            moveX += joystickVector.x;
+
+            moveZ += joystickVector.y;
+
+
+
+            const inputVector = new THREE.Vector3(moveX, 0, moveZ);
+
+
+
+            // Normalize if magnitude > 1 (so diagonal isn't faster, but analog control is preserved)
+
+            if (inputVector.length() > 1) {
+
+                inputVector.normalize();
+
+            }
+
+
+
+            if (inputVector.length() > 0.1) { // Deadzone for tiny movements
+
+                inputVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraAngle);
+
+
+
+                // Scale speed by input magnitude (allows slow walking with analog stick)
+
+                player.position.addScaledVector(inputVector, CONFIG.playerSpeed);
+
+
+
+                const targetRotation = Math.atan2(inputVector.x, inputVector.z);
+
+                let rotDiff = targetRotation - player.rotation.y;
+
+                while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
+
+                while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
+
+                player.rotation.y += rotDiff * 0.15;
+
+
+
+                const time = Date.now() * 0.01;
+
+                player.children.forEach(child => {
+
+                    if(child.name.startsWith('leg')) {
+
+                        const idx = parseInt(child.name.slice(-1));
+
+                        const offset = (idx % 2 === 0) ? 0 : Math.PI;
+
+                        child.rotation.x = Math.sin(time + offset) * 0.5;
+
+                    }
+
+                    if(child.name === 'tail') child.rotation.y = Math.sin(time * 2) * 0.5;
+
+                });
+
+                player.children[0].position.y = 1 + Math.sin(time * 2) * 0.05;
+
+            } else {
+
+                player.children.forEach(child => {
+
+                    if(child.name.startsWith('leg')) child.rotation.x *= 0.8;
+
+                    if(child.name === 'tail') child.rotation.y = Math.sin(Date.now() * 0.005) * 0.2;
+
+                });
+
+            }
+
+
+
+            const limit = CONFIG.worldSize / 2 - 2;
+
+            player.position.x = Math.max(-limit, Math.min(limit, player.position.x));
+
+            player.position.z = Math.max(-limit, Math.min(limit, player.position.z));
+
+        }
+
+
+
+        function updateCamera() {
+
+            if (!player) return;
+
+            // Apply camera rotation from virtual control
+
+            cameraAngle += cameraRotationSpeed * 0.02;
+
+            const dist = CONFIG.cameraDistance;
+
+            const height = CONFIG.cameraHeight;
+
+            const offsetX = Math.sin(cameraAngle) * dist;
+
+            const offsetZ = Math.cos(cameraAngle) * dist;
+
+            const targetPos = new THREE.Vector3(player.position.x + offsetX, player.position.y + height, player.position.z + offsetZ);
+
+            camera.position.lerp(targetPos, 0.1);
+
+            camera.lookAt(player.position);
+
+        }
+
+
+
+        function updateTreats() {
+
+            const time = Date.now() * 0.002;
+
+            const playerBox = new THREE.Box3().setFromObject(player);
+
+            for (let i = treats.length - 1; i >= 0; i--) {
+
+                const t = treats[i];
+
+                t.mesh.rotation.y += t.rotationSpeed;
+
+                if (t.points === 10) t.mesh.rotation.x += t.rotationSpeed * 0.5;
+
+                else t.mesh.rotation.z = Math.sin(time * 2) * 0.1;
+
+                t.mesh.position.y = t.baseY + Math.sin(time + t.floatOffset) * 0.3;
+
+
+
+                const treatBox = new THREE.Box3().setFromObject(t.mesh);
+
+                if (playerBox.intersectsBox(treatBox)) {
+
+                    createParticles(t.mesh.position, t.points === 50 ? 0xA52A2A : 0xFFFF00, 8);
+
+                    scene.remove(t.mesh);
+
+                    treats.splice(i, 1);
+
+                    updateScore(t.points);
+
+                }
+
+            }
+
+        }
+
+
+
+        function createParticles(pos, colorHex, count) {
+
+            const geo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+
+            const mat = new THREE.MeshBasicMaterial({ color: colorHex || 0xFFFF00 });
+
+            for(let i=0; i<count; i++) {
+
+                const mesh = new THREE.Mesh(geo, mat);
+
+                mesh.position.copy(pos);
+
+                const vel = new THREE.Vector3((Math.random() - 0.5) * 0.5, (Math.random() * 0.5) + 0.2, (Math.random() - 0.5) * 0.5);
+
+                scene.add(mesh);
+
+                particles.push({ mesh, vel, life: 1.0 });
+
+            }
+
+        }
+
+
+
+        function updateParticles() {
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+
+                const p = particles[i];
+
+                p.life -= 0.02;
+
+                p.mesh.position.add(p.vel);
+
+                p.vel.y -= 0.02;
+
+                p.mesh.rotation.x += 0.1;
+
+                p.mesh.rotation.y += 0.1;
+
+                p.mesh.scale.setScalar(p.life);
+
+                if (p.life <= 0) {
+
+                    scene.remove(p.mesh);
+
+                    particles.splice(i, 1);
+
+                }
+
+            }
+
+        }
+
+
+
+        function updateScore(amount) {
+
+            score += amount;
+
+            const el = document.getElementById('score');
+
+            el.innerText = score;
+
+            el.style.transform = "scale(1.5)";
+
+            el.style.color = amount > 10 ? "#ffaa00" : "white";
+
+            setTimeout(() => {
+
+                el.style.transform = "scale(1)";
+
+                el.style.color = "white";
+
+            }, 200);
+
+        }
+
+
+
+        function onWindowResize() {
+
+            camera.aspect = window.innerWidth / window.innerHeight;
+
+            camera.updateProjectionMatrix();
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+        }
+
+
+
+        function animate() {
+
+            requestAnimationFrame(animate);
+
+            const time = clock.getElapsedTime();
+
+            if (grassMat) grassMat.uniforms.time.value = time;
+
+
+
+            updatePlayer();
+
+            updateCamera();
+
+            updateTreats();
+
+            updateParticles();
+
+            checkRoundWin();
+
+
+
+            renderer.render(scene, camera);
+
+        }
+
+
+
+        // Boot
+
+        init();
+
+
+
+    </script>
+
+</body>
+
+</html>
